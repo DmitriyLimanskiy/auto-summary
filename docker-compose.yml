@@ -9,13 +9,17 @@ services:
     env_file:
       - backend/.env
     environment:
-      WHISPER_URL: http://whisper-server:8000
-      OLLAMA_URL: http://llm-server:11434
+      WHISPER_SERVER_URL: http://whisper-server:8000/v1
+      WHISPER_SERVER_URL_MODELS: http://whisper-server:8000/v1/models
+      LLM_SERVER_URL: http://llm-server:11434/v1
+      LLM_SERVER_URL_MODELS: http://llm-server:11434/v1/models
+    volumes:
+      - ./backend/storage:/app/storage
     depends_on:
       - whisper-server
       - llm-server
     networks:
-      - auto-resume-network
+      - auto-summary-network
     restart: unless-stopped
   
   whisper-server:
@@ -29,7 +33,7 @@ services:
       - whisper_cache:/root/.cache/huggingface
     restart: unless-stopped
     networks:
-      - auto-resume-network
+      - auto-summary-network
     deploy:
       resources:
         reservations:
@@ -50,7 +54,7 @@ services:
       - ollama_storage:/root/.ollama
       - ./models:/models
     networks:
-      - auto-resume-network
+      - auto-summary-network
     deploy:
       resources:
         reservations:
@@ -66,5 +70,5 @@ volumes:
   ollama_storage:
 
 networks:
-  auto-resume-network:
+  auto-summary-network:
     driver: bridge
