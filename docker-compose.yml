@@ -1,0 +1,70 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: auto-summary-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - backend/.env
+    environment:
+      WHISPER_URL: http://whisper-server:8000
+      OLLAMA_URL: http://llm-server:11434
+    depends_on:
+      - whisper-server
+      - llm-server
+    networks:
+      - auto-resume-network
+    restart: unless-stopped
+  
+  whisper-server:
+    image: fedirz/faster-whisper-server:latest-cuda
+    container_name: whisper_stt_server
+    ports:
+      - "8000:8000"
+    environment:
+      WHISPER__MODEL: deepdml/faster-whisper-large-v3-turbo-ct2
+    volumes:
+      - whisper_cache:/root/.cache/huggingface
+    restart: unless-stopped
+    networks:
+      - auto-resume-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+
+  llm-server:
+    image: ollama/ollama:latest
+    container_name: ollama_llm_server
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_KEEP_ALIVE: -1
+    volumes:
+      - ollama_storage:/root/.ollama
+      - ./models:/models
+    networks:
+      - auto-resume-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities:
+                - gpu
+    restart: unless-stopped
+
+volumes:
+  whisper_cache:
+  ollama_storage:
+
+networks:
+  auto-resume-network:
+    driver: bridge
