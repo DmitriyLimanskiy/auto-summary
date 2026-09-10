@@ -28,7 +28,8 @@ backend/.env
 Thumbs.db
 
 # Storage (user uploads)
-storage/
+backend/storage/*/*
+!backend/storage/*/.gitkeep
 
 #Models
 my-folder/*
