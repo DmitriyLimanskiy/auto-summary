@@ -32,9 +32,6 @@ env/
 .DS_Store
 Thumbs.db
 
-# Storage (user uploads)
-storage/
-
 # Logs
 *.log
 
@@ -50,6 +47,10 @@ build/
 
 # Poetry
 poetry.lock
+
+# Storage (user uploads)
+storage/*/*
+!storage/*/.gitkeep
 
 # Misc
 *.md

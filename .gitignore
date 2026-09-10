@@ -7,13 +7,9 @@ __pycache__/
 .venv/
 venv/
 env/
-backend/venv/
-backend/.venv/
-backend/env/
 
 # Environment variables
 .env
-backend/.env
 .env.local
 .env.*.local
 
@@ -27,13 +23,11 @@ backend/.env
 .DS_Store
 Thumbs.db
 
-# Storage (user uploads)
-backend/storage/*/*
-!backend/storage/*/.gitkeep
+# Storage: правила на уровне сервисов (см. backend/.gitignore)
 
 #Models
-my-folder/*
-!my-folder/keep-me.txt
+models/*
+!models/Modelfile
 
 # Logs
 *.log
@@ -47,6 +41,3 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-
-# Dokcer
-docker-compose.dev.yml

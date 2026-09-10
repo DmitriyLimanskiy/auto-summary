@@ -44,7 +44,8 @@
 | Whisper | `whisper_stt_server`   | 8000       | `fedirz/faster-whisper-server:latest-cuda` (STT)       |
 | Ollama  | `ollama_llm_server`    | 11434      | `ollama/ollama:latest` (LLM, OpenAI-совместимый `/v1`) |
 
-Сеть: `auto-resume-network` (bridge). Volumes: `whisper_cache` (кэш HF-модели), `ollama_storage` (`/root/.ollama`).
+Сеть: `auto-summary-network` (bridge). Volumes: `whisper_cache` (кэш HF-модели), `ollama_storage` (`/root/.ollama`),
+bind-mount `./backend/storage` → `/app/storage` (загрузки, аудио, конспекты сохраняются на хосте).
 
 ## Требования
 
@@ -64,7 +65,7 @@ cd auto-summary
 
 ### 2. Настройка переменных окружения
 
-Шаблон лежит в `backend/env.example`, рабочий файл — `backend/.env` (не коммитится, см. `.gitignore`):
+Шаблон лежит в `backend/.env.example`, рабочий файл — `backend/.env` (не коммитится, см. `.gitignore`):
 
 ```bash
 cp backend/.env.example backend/.env
@@ -264,11 +265,11 @@ uvicorn main:app --reload --port 8080
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-> Dev-файл исключён из git (см. `.gitignore`), рассчитан на внешний Whisper/Ollama — задайте URL в `backend/.env`.
+> Dev-файл рассчитан на внешний Whisper/Ollama — задайте URL в `backend/.env`.
 
 ## Переменные окружения
 
-Файлы: шаблон `backend/env.example`, рабочий `backend/.env` (подключается через `env_file` в Compose).
+Файлы: шаблон `backend/.env.example`, рабочий `backend/.env` (подключается через `env_file` в Compose).
 
 | Переменная                  | Описание                                   | По умолчанию в примере                 |
 |-----------------------------|--------------------------------------------|----------------------------------------|
@@ -280,8 +281,9 @@ docker compose -f docker-compose.dev.yml up -d --build
 | `LLM_API_KEY`               | Ключ для Ollama (формальность)             | `not-needed`                           |
 | `DEFAULT_MODEL_ID`          | Модель LLM по умолчанию                    | `qwen3.5-custom:latest`                |
 
-Дополнительно `docker-compose.yml` жёстко задаёт `WHISPER_URL`/`OLLAMA_URL` в `environment` сервиса `backend` (
-устаревшие имена, код использует `*_SERVER_URL` из `.env`).
+Дополнительно `docker-compose.yml` задаёт `WHISPER_SERVER_URL` / `WHISPER_SERVER_URL_MODELS` / `LLM_SERVER_URL` /
+`LLM_SERVER_URL_MODELS` в `environment` сервиса `backend` (имеют приоритет над `backend/.env`, внутри сети указывают
+на имена сервисов `whisper-server` / `llm-server`).
 
 Порты с хоста: `8080` (backend), `8000` (whisper), `11434` (ollama).
 
@@ -353,7 +355,6 @@ docker exec -it ollama_llm_server ollama run <model>
   `model_id` в запросе.
 - Обработка синхронная: большой файл блокирует запрос на время STT+LLM (смотрите логи
   `Время выполнения process_meeting`).
-- `storage/` внутри контейнера эфемерно, если не смонтирован volume — для персистентности добавьте bind-mount/volume для
-  `/app/storage`.
-- Нет `LICENSE` файла в репозитории.
+- `storage/` смонтирован в контейнер (`./backend/storage:/app/storage`), файлы `uploads` / `audio` / `summaries`
+  сохраняются на хосте и переживают пересоздание контейнера.
 - Нет автотестов.
