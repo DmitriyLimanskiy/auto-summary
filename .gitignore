@@ -41,3 +41,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+
+# Docker compose: локальные dev-файлы не версионируются (см. CHANGELOG 0.2.1)
+docker-compose.dev.yml
+docker-compose.dev2.yml

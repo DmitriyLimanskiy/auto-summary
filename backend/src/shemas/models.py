@@ -16,3 +16,8 @@ class CreateModelRequest(BaseModel):
     # None означает "не передавать" (Ollama применит свои дефолты).
     temperature: float | None = Field(default=0.8)
     num_ctx: int | None = Field(default=24576)
+
+    # Перезапись модели с тем же именем. False (по умолчанию) — ручка вернёт
+    # 409, если модель уже существует; True — старая модель будет удалена
+    # (в ответе вернётся "replaced": true).
+    overwrite: bool = False

@@ -43,8 +43,9 @@
    `backend/src/llm.py`.
 5. Сохраняет результат в `storage/summaries/<name> summary.md` и возвращает JSON с `summary_markdown` и`raw_transcript`.
 6. Импортирует `.gguf`-модель из директории `/models` в Ollama (`POST /api/v1/models/import`): заливка blob через
-   нативный `ollama.AsyncClient` + создание модели с `temperature`/`num_ctx` из запроса, см.
-   `backend/src/shemas/models.py`.
+   нативный `ollama.AsyncClient` + создание модели с `temperature`/`num_ctx` из запроса. Если модель с таким
+   именем уже есть — без `"overwrite": true` вернётся `409`, с флагом старая модель удаляется
+   (`delete_model_if_exists`, в ответе `"replaced": true`), см. `backend/src/shemas/models.py`.
 
 > В коде два промпта: `sys_prompt_1.txt` — резюме встречи (Executive Summary, решения, Action Items),
 `sys_prompt_2.txt` — подробный учебный конспект лекции. По умолчанию используется `sys_prompt_2.txt`.
@@ -116,12 +117,15 @@ docker compose up -d --build
   "model_name": "qwen3.5-custom:latest",
   "gguf_file": "Qwen3.5-9B-Q4_K_M.gguf",
   "temperature": 0.8,
-  "num_ctx": 24576
+  "num_ctx": 24576,
+  "overwrite": false
 }
 ```
 
 - `gguf_file` — имя файла внутри `/models` (положите `.gguf` в `./models/` на хосте).
-- `temperature` / `num_ctx` опциональны (`null` — Ollama применит свои дефолты).
+- `temperature` / `num_ctx` опциональны (`null` — параметр вообще не отправляется, Ollama применит свои дефолты).
+- `overwrite` (`false` по умолчанию) — что делать, если модель с таким именем уже существует:
+  `false` — вернуть `409`, `true` — удалить старую и создать заново.
 
 Ручка заливает файл в Ollama как blob (`create_blob` → `digest`) и создаёт модель (`create`)
 с `parameters: {temperature, num_ctx}` через нативный `ollama.AsyncClient` (`OLLAMA_SERVER_URL`).
@@ -131,15 +135,20 @@ docker compose up -d --build
 ```json
 {
   "message": "Модель 'qwen3.5-custom:latest' создана",
+  "replaced": false,
   "digest": "sha256:...",
   "ollama_response": {}
 }
 ```
 
-Ошибки: `404` — `.gguf`-файл не найден в `/models`; `500` — ошибка Ollama.
+- `replaced: true` — старая модель с тем же именем была удалена (запрос был с `"overwrite": true`).
+
+Ошибки: `404` — `.gguf`-файл не найден в `/models`; `409` — модель уже существует
+(повторите с `"overwrite": true`); ошибки Ollama проксируются со своим статус-кодом,
+`detail` — словарь `{"type": ..., "message": ...}`; прочие сбои — `500` с
+`{"type": ..., "message": ..., "repr": ...}`.
 
 > Альтернативный способ — классический `Modelfile` (`./models/Modelfile`): `FROM /models/*.gguf` + `PARAMETER`.
-> В `docker-compose.dev.yml` директория `./models` не смонтирована — добавьте `- ./models:/models` вручную.
 
 ### `POST /api/v1/meeting/process` — обработка встречи/лекции
 
@@ -188,6 +197,8 @@ uvicorn main:app --reload --port 8080
 docker compose -f docker-compose.dev.yml up -d --build
 ```
 
+> Dev compose-файлы (`docker-compose.dev.yml` — только backend, `docker-compose.dev2.yml` — внешние
+> Whisper/Ollama) — локальные, в репозиторий не коммитятся (см. `.gitignore`).
 > Dev-окружение рассчитано на внешние Whisper/Ollama — задайте URL в `backend/.env`.
 
 ## Переменные окружения
@@ -213,7 +224,7 @@ docker compose -f docker-compose.dev.yml up -d --build
 auto-summary/
 ├── CHANGELOG.md              # история версий
 ├── docker-compose.yml      # backend + whisper-server + llm-server (prod)
-├── docker-compose.dev.yml  # только backend с bind-mount (dev)
+│                           # (dev-файлы docker-compose.dev*.yml — локальные, в репозитории их нет)
 ├── models/                   # .gguf-файлы и Modelfile → /models в контейнерах
 ├── backend/
 │   ├── Dockerfile          # python:3.14-slim + ffmpeg + uvicorn :8080

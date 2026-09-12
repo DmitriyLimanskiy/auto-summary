@@ -3,6 +3,33 @@
 Все значимые изменения проекта фиксируются в этом файле.
 Версия приложения дублируется в `backend/main.py` (`FastAPI(..., version=...)`).
 
+## [0.2.1] — 2026-09-13
+
+### Добавлено
+
+- Поле `overwrite` в `CreateModelRequest` (`backend/src/shemas/models.py`):
+  `false` (по умолчанию) — повторный импорт с занятым `model_name` отклоняется
+  с `409 Conflict`; `true` — старая модель удаляется перед созданием.
+- Флаг `replaced` в ответе `POST /api/v1/models/import` (`true` — старая модель
+  была удалена, `false` — создана новая).
+- Хелпер `delete_model_if_exists` (`backend/main.py`): проверка через
+  `ollama_client.show`, удаление существующей модели (404 — модели нет).
+
+### Изменено
+
+- `temperature` / `num_ctx` со значением `null` не отправляются в Ollama
+  (применяются дефолты сервера), раньше уходили как явный `null`.
+- `ollama_response` в ответе ручки сериализуется через `model_dump()`
+  (раньше возвращался сырой `ProgressResponse`).
+- Ошибки импорта структурированы: ошибки нативного API Ollama (`ResponseError`)
+  проксируют свой HTTP-статус, `detail` — словарь `{type, message}`;
+  прочие исключения — `500` с `{type, message, repr}`.
+- Обработчик ручки переименован: `create_custom_model` → `import_custom_model`.
+- `docker-compose.dev.yml` удалён из репозитория, dev compose-файлы
+  (`docker-compose.dev*.yml`) теперь локальные и игнорируются через `.gitignore`
+  (паттерны исправлены на нижний регистр — заглавные не работали на Linux).
+- Версия `0.2.0` → `0.2.1` в `backend/main.py`.
+
 ## [0.2.0] — 2026-09-13
 
 ### Добавлено
