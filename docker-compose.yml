@@ -15,6 +15,7 @@ services:
       LLM_SERVER_URL_MODELS: http://llm-server:11434/v1/models
     volumes:
       - ./backend/storage:/app/storage
+      - ./models:/models
     depends_on:
       - whisper-server
       - llm-server
